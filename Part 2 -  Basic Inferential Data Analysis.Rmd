@@ -1,0 +1,152 @@
+---
+title: "Tooth Growth Dataset Analysis"
+author: "Carlos Martinez Reyes"
+date: "4/10/2020"
+output:
+  word_document: default
+  html_document:
+    df_print: paged
+---
+
+## Part 2 - Basic Inferential Data Analysis
+
+### Overview
+In the second part of the project, we want to analyze the effectiveness of vitamin c on teeth growth in guinea pigs. We’ll do this by using t-tests, comparing teeth length by supplement type and dose level.
+
+#### 1. Load the ToothGrowth data and perform some basic exploratory data analyses
+
+```{r}
+# Load the Data
+library(dplyr, warn.conflicts = F)
+library(ggplot2)
+library(datasets)
+data(ToothGrowth)
+
+# Explore the dataset
+str(ToothGrowth)
+```
+
+#### 2. Basic summary of the data
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+# Variables
+summary(ToothGrowth)
+
+```
+
+The statistical summary shows that average length of tooth growth over all the observations is 18.81mm between the range of 4.2mm and 33.9mm.
+
+```{r}
+# The  variable dose contains 3 values: 0.5, 1, 2. Convert dose to factor
+ToothGrowth$dose <- as.factor(ToothGrowth$dose)
+str(ToothGrowth)
+```
+
+```{r}
+# Analysis and visualization of tooth growth in function of the dose level
+
+table(ToothGrowth$dose, ToothGrowth$supp)
+
+ToothGrowth %>%
+
+
+ggplot(aes(x=dose, y=len, fill = supp)) +
+geom_boxplot() +
+facet_grid(. ~ supp) +
+scale_fill_brewer(palette = "Set2") +
+theme_bw() +
+ggtitle("Tooth growth in function of the dose level by Supplement type") +
+labs(x="dose(mg)", y= "teeth length(mm) ") +
+guides(fill=guide_legend(title="Supplement type"))
+
+#Supplement type mean and range:
+suppmean = split(ToothGrowth$len, ToothGrowth$supp)
+sapply(suppmean, mean)
+sapply(suppmean, range)
+
+```
+
+```{r}
+# visualization of tooth growth in function of supplement type
+
+table(ToothGrowth$supp, ToothGrowth$dose)
+
+ToothGrowth %>%
+ggplot(aes(x = supp, y = len)) +
+geom_boxplot(aes(fill = supp)) +
+facet_wrap(~ dose) +
+scale_fill_brewer(palette = "Set3") +
+theme_bw() +
+ggtitle("Tooth growth in function of supplement type by Dose level") +
+labs(x="supplement type", y= "teeth length(mm)") +
+guides(fill=guide_legend(title="Supplement type"))
+
+```
+```{r}
+#Dosage level mean and range:
+dosmean = split(ToothGrowth$len, ToothGrowth$dose)
+sapply(dosmean, mean)
+sapply(dosmean, range)
+
+```
+In summary, when comparing the box plots, the means and their ranges, it is possible to observe that the dose level influences tooth growth more significantly than the type of supplement. To test this claim, we are going to perform hypothesis tests.
+
+#### 3.	Use confidence intervals and hypothesis tests to compare tooth growth by supp and dose.
+From the conclusions at the end of the previous section we are going to perform a two-sample t-test for the supplement factor and a two-sample t-test for each possible pair of the 3 levels of the dose factor, in total we will run 4 t-tests.
+
+##### a). Test 1: dose = 0.5 and dose = 1
+```{r}
+len_a <- ToothGrowth %>% filter(dose %in% c(0.5,1)) %>% select(len) %>% unlist()
+dose_a <- ToothGrowth %>% filter(dose %in% c(0.5,1)) %>% select(dose) %>% unlist()
+
+#Test
+(Test.a <- t.test(len_a~dose_a, paired = FALSE))
+
+```
+
+##### b). Test 2: dose = 0.5 and dose = 2
+```{r}
+len_b <- ToothGrowth %>% filter(dose %in% c(0.5,2)) %>% select(len) %>% unlist()
+dose_b <- ToothGrowth %>% filter(dose %in% c(0.5, 2)) %>% select(dose) %>% unlist()
+
+#Test
+(Test.b <- t.test(len_b~dose_b, paired = FALSE))
+```
+
+##### c). Test 3: dose = 1 and dose = 2
+```{r}
+len_c <- ToothGrowth %>% filter(dose %in% c(1,2)) %>% select(len) %>% unlist()
+dose_c <- ToothGrowth %>% filter(dose %in% c(1,2)) %>% select(dose) %>% unlist()
+#Test c
+(Test.c <- t.test(len_c~dose_c, paired = FALSE))
+```
+
+
+Testing all possible combinations of levels of the dose factor, we obtain that in all cases the p-value is less than the significance level 0.05. Therefore, we reject the null hypothesis Ho. In other words, there is a significant difference in average tooth length due to the dosage level.
+
+##### d). Test 4:  by Supplement type
+
+```{r}
+len <- ToothGrowth %>% select(len) %>% unlist()
+supp <- ToothGrowth %>% select(supp) %>% unlist()
+#Test
+t.test(len~supp, paired=F)
+```
+
+We can see that the p-value of the test is 0.06 and since it is greater than 0.05, the null hypothesis Ho is accepted, that is, there is not enough evidence to reject it, so we cannot affirm that on average the levels of supplements have different impact on tooth growth. In other words, there is no statistically significant difference between them.
+
+
+#### 4.	Conclusions and the assumptions.
+
+i). The samples used are random and iid.
+
+ii). The population distribution of each sample should be approximately normal.
+
+If the above assumptions are met, we can conclude the following:
+There is a statistically significant difference between the length of the teeth and the dose, so we can expect that as the dose increases, the length of the teeth also increases.
+On the other hand, there does not appear to be a statistically significant difference between the methods of administration.
+
